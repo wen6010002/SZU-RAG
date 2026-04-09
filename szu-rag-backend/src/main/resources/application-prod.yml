@@ -1,0 +1,33 @@
+server:
+  port: 8088
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:szu_rag_2024}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis}
+      port: 6379
+
+milvus:
+  host: ${MILVUS_HOST:milvus}
+  port: 19530
+  database: default
+
+ai:
+  chat:
+    deepseek:
+      api-key: sk-e99234b889ea4f9db4471240522dc56f
+  embedding:
+    bailian:
+      api-key: sk-98cdd33ac81348cf8d302b6094c60dbb
+
+logging:
+  level:
+    com.szu.rag: info
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl

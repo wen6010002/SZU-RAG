@@ -1,0 +1,76 @@
+server:
+  port: 8088
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: szu-rag-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: szu_rag_2024
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
+# Milvus
+milvus:
+  host: localhost
+  port: 19530
+  database: default
+
+# AI 配置
+ai:
+  chat:
+    provider: deepseek
+    deepseek:
+      base-url: https://api.deepseek.com
+      api-key: sk-e99234b889ea4f9db4471240522dc56f
+      model: deepseek-chat
+      max-tokens: 2048
+      temperature: 0.3
+  embedding:
+    provider: bailian
+    bailian:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${BAILIAN_API_KEY:sk-98cdd33ac81348cf8d302b6094c60dbb}
+      model: text-embedding-v3
+      dimension: 1024
+
+# RAG 配置
+rag:
+  retrieval:
+    top-k: 5
+    score-threshold: 0.5
+  memory:
+    max-turns: 10
+  rate-limit:
+    max-requests-per-minute: 20
+
+# Sa-Token
+sa-token:
+  token-name: Authorization
+  timeout: 86400
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+
+# Snowflake
+snowflake:
+  worker-id: 1
+
+logging:
+  level:
+    com.szu.rag: debug

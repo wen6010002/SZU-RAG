@@ -1,0 +1,30 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+
+# Node.js
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (爬虫/存储数据不入库)
+data/storage/
+szu-rag-crawler/data/
