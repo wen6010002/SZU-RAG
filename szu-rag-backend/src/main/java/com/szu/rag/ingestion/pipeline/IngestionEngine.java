@@ -8,7 +8,9 @@ import com.szu.rag.rag.vector.VectorStoreService;
 import com.szu.rag.knowledge.model.entity.KnowledgeDocument;
 import com.szu.rag.knowledge.model.entity.DocumentChunk;
 import com.szu.rag.knowledge.mapper.KnowledgeDocumentMapper;
+import com.szu.rag.knowledge.mapper.KnowledgeBaseMapper;
 import com.szu.rag.knowledge.mapper.DocumentChunkMapper;
+import com.szu.rag.knowledge.model.entity.KnowledgeBase;
 import com.szu.rag.framework.id.SnowflakeIdWorker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class IngestionEngine {
     private final EmbeddingClient embeddingClient;
     private final VectorStoreService vectorStoreService;
     private final KnowledgeDocumentMapper documentMapper;
+    private final KnowledgeBaseMapper kbMapper;
     private final DocumentChunkMapper chunkMapper;
     private final SnowflakeIdWorker idWorker;
 
@@ -60,6 +63,14 @@ public class IngestionEngine {
 
             context.setStatus("COMPLETED");
             updateDocumentStatus(context.getDocumentId(), "COMPLETED", null);
+
+            // Write back chunk count to document record
+            KnowledgeDocument completedDoc = documentMapper.selectById(context.getDocumentId());
+            if (completedDoc != null) {
+                completedDoc.setChunkCount(context.getChunks().size());
+                documentMapper.updateById(completedDoc);
+            }
+
             log.info("Ingestion completed for document: {}", context.getDocumentId());
 
         } catch (Exception e) {
@@ -71,6 +82,12 @@ public class IngestionEngine {
     }
 
     private void indexChunks(IngestionContext context) {
+        // Ensure collection exists (auto-create if lost, e.g. after Milvus restart)
+        String collectionName = getCollectionName(context.getKnowledgeBaseId());
+        KnowledgeBase kb = kbMapper.selectById(context.getKnowledgeBaseId());
+        int dimension = kb != null ? kb.getEmbeddingDim() : 1024;
+        vectorStoreService.createCollection(collectionName, dimension);
+
         List<String> chunks = context.getChunks();
         List<Long> milvusIds = new ArrayList<>();
         List<Long> chunkIds = new ArrayList<>();
@@ -112,7 +129,6 @@ public class IngestionEngine {
                 metadataList.add(meta);
             }
 
-            String collectionName = getCollectionName(context.getKnowledgeBaseId());
             vectorStoreService.insert(collectionName, batchMilvusIds, vectors, metadataList);
             milvusIds.addAll(batchMilvusIds);
         }
@@ -129,7 +145,7 @@ public class IngestionEngine {
         KnowledgeDocument doc = documentMapper.selectById(docId);
         if (doc != null) {
             doc.setDocumentStatus(status);
-            doc.setErrorMessage(errorMsg);
+            doc.setErrorMessage(errorMsg != null ? errorMsg : "");
             documentMapper.updateById(doc);
         }
     }

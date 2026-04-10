@@ -30,11 +30,43 @@ public class BailianEmbeddingClient implements EmbeddingClient {
     @Override
     public List<Float> embed(String text) {
         List<List<Float>> results = embedBatch(List.of(text));
-        return results.isEmpty() ? List.of() : results.get(0);
+        if (results.isEmpty()) {
+            throw new RuntimeException("Embedding returned empty results for text: " + text.substring(0, Math.min(50, text.length())));
+        }
+        return results.get(0);
     }
 
     @Override
     public List<List<Float>> embedBatch(List<String> texts) {
+        // Split into smaller sub-batches to avoid API token limits
+        int subBatchSize = 5;
+        List<List<Float>> allEmbeddings = new ArrayList<>();
+        for (int i = 0; i < texts.size(); i += subBatchSize) {
+            List<String> subBatch = texts.subList(i, Math.min(i + subBatchSize, texts.size()));
+            List<List<Float>> batchResult = callEmbeddingApi(subBatch);
+            allEmbeddings.addAll(batchResult);
+        }
+        return allEmbeddings;
+    }
+
+    private List<List<Float>> callEmbeddingApi(List<String> texts) {
+        // Truncate texts exceeding ~8000 chars (~8192 tokens for Chinese text)
+        List<String> truncated = new ArrayList<>();
+        for (String text : texts) {
+            if (text.length() > 8000) {
+                log.warn("Truncating embedding input from {} to 8000 chars", text.length());
+                truncated.add(text.substring(0, 8000));
+            } else {
+                truncated.add(text);
+            }
+        }
+        texts = truncated;
+
+        // Log sizes for debugging
+        for (int i = 0; i < texts.size(); i++) {
+            log.debug("Embedding input[{}] length: {} chars", i, texts.get(i).length());
+        }
+
         AiProperties.BailianConfig config = properties.getEmbedding().getBailian();
 
         JSONObject body = new JSONObject();
@@ -52,8 +84,13 @@ public class BailianEmbeddingClient implements EmbeddingClient {
         try (Response response = httpClient.newCall(request).execute()) {
             String responseBody = response.body().string();
             JSONObject json = JSON.parseObject(responseBody);
-            JSONArray data = json.getJSONArray("data");
 
+            if (json.containsKey("error")) {
+                log.error("Embedding API error: {}", json.getString("error"));
+                throw new RuntimeException("Embedding API error: " + json.getString("error"));
+            }
+
+            JSONArray data = json.getJSONArray("data");
             List<List<Float>> embeddings = new ArrayList<>();
             for (int i = 0; i < data.size(); i++) {
                 JSONArray embeddingArray = data.getJSONObject(i).getJSONArray("embedding");
@@ -64,6 +101,8 @@ public class BailianEmbeddingClient implements EmbeddingClient {
                 embeddings.add(embedding);
             }
             return embeddings;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Embedding request failed", e);
             throw new RuntimeException("Embedding failed", e);

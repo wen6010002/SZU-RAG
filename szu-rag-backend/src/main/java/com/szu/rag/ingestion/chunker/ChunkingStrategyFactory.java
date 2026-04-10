@@ -26,6 +26,6 @@ public class ChunkingStrategyFactory {
     }
 
     public ChunkingStrategy getDefault() {
-        return get("STRUCTURE_AWARE");
+        return get("RECURSIVE");
     }
 }

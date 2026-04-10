@@ -17,6 +17,8 @@ public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
 
+    // ========== Knowledge Base ==========
+
     @PostMapping("/bases")
     public Result<KnowledgeBase> createBase(@RequestBody CreateBaseRequest req) {
         return Result.success(knowledgeService.createKnowledgeBase(req.getName(), req.getDescription()));
@@ -33,6 +35,8 @@ public class KnowledgeController {
                 .filter(kb -> kb.getId().equals(id)).findFirst().orElse(null));
     }
 
+    // ========== Document Upload ==========
+
     @PostMapping("/documents/upload")
     public Result<KnowledgeDocument> uploadDocument(
             @RequestParam("file") MultipartFile file,
@@ -41,10 +45,37 @@ public class KnowledgeController {
         return Result.success(knowledgeService.uploadDocument(kbId, file, sourceUrl));
     }
 
+    @PostMapping("/documents/upload/batch")
+    public Result<List<KnowledgeDocument>> uploadDocumentsBatch(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam("knowledgeBaseId") Long kbId) {
+        return Result.success(knowledgeService.uploadDocumentsBatch(kbId, files));
+    }
+
+    // ========== Document Operations ==========
+
     @GetMapping("/bases/{kbId}/documents")
     public Result<List<KnowledgeDocument>> listDocuments(@PathVariable Long kbId) {
         return Result.success(knowledgeService.listDocuments(kbId));
     }
+
+    @GetMapping("/documents/{docId}")
+    public Result<KnowledgeDocument> getDocument(@PathVariable Long docId) {
+        return Result.success(knowledgeService.getDocument(docId));
+    }
+
+    @DeleteMapping("/documents/{docId}")
+    public Result<Void> deleteDocument(@PathVariable Long docId) {
+        knowledgeService.deleteDocument(docId);
+        return Result.success();
+    }
+
+    @PostMapping("/documents/{docId}/reprocess")
+    public Result<KnowledgeDocument> reprocessDocument(@PathVariable Long docId) {
+        return Result.success(knowledgeService.reprocessDocument(docId));
+    }
+
+    // ========== DTO ==========
 
     @lombok.Data
     public static class CreateBaseRequest {

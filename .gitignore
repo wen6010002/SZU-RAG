@@ -28,3 +28,4 @@ Thumbs.db
 # Data (爬虫/存储数据不入库)
 data/storage/
 szu-rag-crawler/data/
+szu-rag-backend/data/
