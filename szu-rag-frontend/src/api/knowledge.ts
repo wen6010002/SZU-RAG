@@ -34,6 +34,14 @@ export interface KnowledgeDocument {
   updatedAt: string;
 }
 
+async function parseResponse<T>(res: Response): Promise<T> {
+  const json = await res.json();
+  if (!res.ok || json.code !== '200') {
+    throw new Error(json.message || `请求失败 (${res.status})`);
+  }
+  return json.data;
+}
+
 export async function listBases(): Promise<KnowledgeBase[]> {
   const res = await fetch(`${BASE}/bases`);
   const json = await res.json();
@@ -46,8 +54,7 @@ export async function createBase(name: string, description: string): Promise<Kno
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, description }),
   });
-  const json = await res.json();
-  return json.data;
+  return parseResponse<KnowledgeBase>(res);
 }
 
 export async function uploadDocument(kbId: string, file: File): Promise<KnowledgeDocument> {
@@ -55,8 +62,7 @@ export async function uploadDocument(kbId: string, file: File): Promise<Knowledg
   form.append('file', file);
   form.append('knowledgeBaseId', kbId);
   const res = await fetch(`${BASE}/documents/upload`, { method: 'POST', body: form });
-  const json = await res.json();
-  return json.data;
+  return parseResponse<KnowledgeDocument>(res);
 }
 
 export async function uploadDocumentsBatch(kbId: string, files: File[]): Promise<KnowledgeDocument[]> {
@@ -67,6 +73,9 @@ export async function uploadDocumentsBatch(kbId: string, files: File[]): Promise
   form.append('knowledgeBaseId', kbId);
   const res = await fetch(`${BASE}/documents/upload/batch`, { method: 'POST', body: form });
   const json = await res.json();
+  if (!res.ok || json.code !== '200') {
+    throw new Error(json.message || `上传失败 (${res.status})`);
+  }
   return json.data || [];
 }
 
@@ -78,16 +87,18 @@ export async function listDocuments(kbId: string): Promise<KnowledgeDocument[]> 
 
 export async function getDocument(docId: string): Promise<KnowledgeDocument> {
   const res = await fetch(`${BASE}/documents/${docId}`);
-  const json = await res.json();
-  return json.data;
+  return parseResponse<KnowledgeDocument>(res);
 }
 
 export async function deleteDocument(docId: string): Promise<void> {
-  await fetch(`${BASE}/documents/${docId}`, { method: 'DELETE' });
+  const res = await fetch(`${BASE}/documents/${docId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({ message: '删除失败' }));
+    throw new Error(json.message || '删除失败');
+  }
 }
 
 export async function reprocessDocument(docId: string): Promise<KnowledgeDocument> {
   const res = await fetch(`${BASE}/documents/${docId}/reprocess`, { method: 'POST' });
-  const json = await res.json();
-  return json.data;
+  return parseResponse<KnowledgeDocument>(res);
 }

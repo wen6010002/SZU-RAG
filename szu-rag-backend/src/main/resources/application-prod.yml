@@ -2,6 +2,10 @@ server:
   port: 8088
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}

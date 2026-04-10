@@ -8,6 +8,11 @@ server:
 spring:
   application:
     name: szu-rag-backend
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
+      enabled: true
   datasource:
     url: jdbc:mysql://localhost:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
