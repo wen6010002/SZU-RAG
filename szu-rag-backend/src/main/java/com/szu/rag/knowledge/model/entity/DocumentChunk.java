@@ -19,6 +19,9 @@ public class DocumentChunk {
     private String sourceTitle;
     private String sourceUrl;
     private LocalDate publishDate;
+    private String sourceDepartment;
+    private String documentType;
+    private String category;
     private String metadata;
     private Long milvusId;
     private LocalDateTime createdAt;

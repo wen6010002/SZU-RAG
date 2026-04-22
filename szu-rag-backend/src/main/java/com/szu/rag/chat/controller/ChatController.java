@@ -4,6 +4,7 @@ import com.szu.rag.chat.mapper.ConversationMapper;
 import com.szu.rag.chat.mapper.MessageMapper;
 import com.szu.rag.chat.model.entity.Conversation;
 import com.szu.rag.chat.model.entity.Message;
+import com.szu.rag.framework.context.UserContext;
 import com.szu.rag.framework.exception.ClientException;
 import com.szu.rag.framework.id.SnowflakeIdWorker;
 import com.szu.rag.framework.result.Result;
@@ -32,7 +33,7 @@ public class ChatController {
     public Result<Conversation> createConversation() {
         Conversation conv = new Conversation();
         conv.setId(idWorker.nextId());
-        conv.setUserId(1L);
+        conv.setUserId(UserContext.getUserId());
         conv.setTitle("");
         conv.setStatus("ACTIVE");
         conv.setMessageCount(0);
@@ -44,14 +45,14 @@ public class ChatController {
     public Result<List<Conversation>> listConversations() {
         return Result.success(conversationMapper.selectList(
                 new LambdaQueryWrapper<Conversation>()
-                        .eq(Conversation::getUserId, 1L)
+                        .eq(Conversation::getUserId, UserContext.getUserId())
                         .eq(Conversation::getStatus, "ACTIVE")
                         .orderByDesc(Conversation::getUpdatedAt)));
     }
 
     @PostMapping(value = "/conversations/{id}/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter sendMessage(@PathVariable Long id, @RequestBody SendMessageRequest req) {
-        if (!rateLimitService.allowRequest("chat:user:1", 20, 60)) {
+        if (!rateLimitService.allowRequest("chat:user:" + UserContext.getUserId(), 20, 60)) {
             SseEmitter emitter = new SseEmitter();
             try {
                 emitter.send(SseEmitter.event().name("error")
@@ -60,7 +61,7 @@ public class ChatController {
             emitter.complete();
             return emitter;
         }
-        return ragChatService.chat(id, req.getQuestion());
+        return ragChatService.chat(id, req.getQuestion(), req.getRole());
     }
 
     @GetMapping("/conversations/{id}/messages")
@@ -84,5 +85,6 @@ public class ChatController {
     @lombok.Data
     public static class SendMessageRequest {
         private String question;
+        private String role = "student";
     }
 }

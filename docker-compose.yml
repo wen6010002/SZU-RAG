@@ -100,7 +100,7 @@ services:
       - "8088:8088"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-szu_rag_2024}
       SPRING_DATA_REDIS_HOST: redis
@@ -127,20 +127,6 @@ services:
       - backend
     restart: unless-stopped
 
-  crawler:
-    build: ./szu-rag-crawler
-    container_name: szu-crawler
-    ports:
-      - "8090:8090"
-    environment:
-      RAGENT_BASE_URL: http://backend:8088
-      MYSQL_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-szu_rag_2024}@mysql:3306/szu_rag
-    volumes:
-      - crawler-data:/app/data
-    depends_on:
-      - backend
-    restart: unless-stopped
-
 volumes:
   mysql-data:
   redis-data:
@@ -148,4 +134,3 @@ volumes:
   minio-data:
   milvus-data:
   backend-storage:
-  crawler-data:

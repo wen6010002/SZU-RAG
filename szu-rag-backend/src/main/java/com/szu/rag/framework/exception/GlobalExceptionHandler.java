@@ -1,5 +1,7 @@
 package com.szu.rag.framework.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotRoleException;
 import com.szu.rag.framework.result.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +11,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NotLoginException.class)
+    public Result<Void> handleNotLoginException(NotLoginException e, HttpServletRequest request) {
+        log.warn("Unauthorized: path={}, type={}", request.getRequestURI(), e.getType());
+        return Result.error("401", "未登录或登录已过期");
+    }
+
+    @ExceptionHandler(NotRoleException.class)
+    public Result<Void> handleNotRoleException(NotRoleException e, HttpServletRequest request) {
+        log.warn("Forbidden: path={}, role={}", request.getRequestURI(), e.getRole());
+        return Result.error("403", "无权限访问");
+    }
 
     @ExceptionHandler(ClientException.class)
     public Result<Void> handleClientException(ClientException e, HttpServletRequest request) {

@@ -51,7 +51,17 @@ public class IngestionEngine {
             // Step 3: Chunk
             context.setStatus("CHUNKING");
             updateDocumentStatus(context.getDocumentId(), "CHUNKING", null);
-            ChunkingStrategy chunker = chunkingFactory.getDefault();
+
+            // 根据来源自动选择分块策略
+            String strategyName = detectChunkingStrategy(context);
+            ChunkingStrategy chunker;
+            try {
+                chunker = chunkingFactory.get(strategyName);
+            } catch (IllegalArgumentException e) {
+                chunker = chunkingFactory.getDefault();
+            }
+            log.info("Using chunking strategy: {} for document: {}", strategyName, context.getFileName());
+
             List<String> chunks = chunker.chunk(parsedText, 500, 50);
             context.setChunks(chunks);
             log.info("Chunked into {} pieces", chunks.size());
@@ -118,6 +128,15 @@ public class IngestionEngine {
                 chunkEntity.setSourceTitle(context.getFileName());
                 chunkEntity.setSourceUrl(context.getSourceUrl());
                 chunkEntity.setMilvusId(milvusId);
+
+                // 元数据字段
+                String sourceDept = getMetadataStr(context, "source_department");
+                String docType = getMetadataStr(context, "document_type");
+                String category = getMetadataStr(context, "category");
+                chunkEntity.setSourceDepartment(sourceDept);
+                chunkEntity.setDocumentType(docType);
+                chunkEntity.setCategory(category);
+
                 chunkMapper.insert(chunkEntity);
 
                 Map<String, Object> meta = new HashMap<>();
@@ -126,6 +145,13 @@ public class IngestionEngine {
                 meta.put("chunk_text", batch.get(j));
                 meta.put("source_title", context.getFileName());
                 meta.put("source_url", context.getSourceUrl() != null ? context.getSourceUrl() : "");
+
+                // 扩展元数据
+                meta.put("source_department", sourceDept);
+                meta.put("document_type", docType);
+                meta.put("publish_date", getMetadataStr(context, "publish_date"));
+                meta.put("category", category);
+
                 metadataList.add(meta);
             }
 
@@ -148,5 +174,20 @@ public class IngestionEngine {
             doc.setErrorMessage(errorMsg != null ? errorMsg : "");
             documentMapper.updateById(doc);
         }
+    }
+
+    /**
+     * 根据文档信息选择分块策略
+     */
+    private String detectChunkingStrategy(IngestionContext context) {
+        return "RECURSIVE";
+    }
+
+    /**
+     * 从 context metadata 中安全获取字符串值
+     */
+    private String getMetadataStr(IngestionContext context, String key) {
+        Object val = context.getMetadata().get(key);
+        return val != null ? val.toString() : "";
     }
 }

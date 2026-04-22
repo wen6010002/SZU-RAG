@@ -4,4 +4,5 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface RagChatService {
     SseEmitter chat(Long conversationId, String question);
+    SseEmitter chat(Long conversationId, String question, String role);
 }

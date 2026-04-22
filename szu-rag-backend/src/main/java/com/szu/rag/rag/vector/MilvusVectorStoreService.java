@@ -32,6 +32,13 @@ public class MilvusVectorStoreService implements VectorStoreService {
 
     private MilvusClientV2 client;
 
+    private static final List<String> BASE_OUTPUT_FIELDS = List.of(
+            "document_id", "chunk_index", "chunk_text", "source_title", "source_url"
+    );
+    private static final List<String> EXTENDED_OUTPUT_FIELDS = List.of(
+            "source_department", "document_type", "publish_date", "category"
+    );
+
     @PostConstruct
     public void init() {
         ConnectConfig config = ConnectConfig.builder()
@@ -58,6 +65,12 @@ public class MilvusVectorStoreService implements VectorStoreService {
         schema.addField(AddFieldReq.builder().fieldName("chunk_text").dataType(DataType.VarChar).maxLength(65535).build());
         schema.addField(AddFieldReq.builder().fieldName("source_title").dataType(DataType.VarChar).maxLength(1024).build());
         schema.addField(AddFieldReq.builder().fieldName("source_url").dataType(DataType.VarChar).maxLength(1024).build());
+
+        // 扩展元数据字段
+        schema.addField(AddFieldReq.builder().fieldName("source_department").dataType(DataType.VarChar).maxLength(256).build());
+        schema.addField(AddFieldReq.builder().fieldName("document_type").dataType(DataType.VarChar).maxLength(64).build());
+        schema.addField(AddFieldReq.builder().fieldName("publish_date").dataType(DataType.VarChar).maxLength(32).build());
+        schema.addField(AddFieldReq.builder().fieldName("category").dataType(DataType.VarChar).maxLength(128).build());
 
         List<IndexParam> indexes = List.of(
                 IndexParam.builder().fieldName("vector")
@@ -88,6 +101,13 @@ public class MilvusVectorStoreService implements VectorStoreService {
             row.addProperty("chunk_text", (String) meta.getOrDefault("chunk_text", ""));
             row.addProperty("source_title", (String) meta.getOrDefault("source_title", ""));
             row.addProperty("source_url", (String) meta.getOrDefault("source_url", ""));
+
+            // 扩展元数据字段
+            row.addProperty("source_department", (String) meta.getOrDefault("source_department", ""));
+            row.addProperty("document_type", (String) meta.getOrDefault("document_type", ""));
+            row.addProperty("publish_date", (String) meta.getOrDefault("publish_date", ""));
+            row.addProperty("category", (String) meta.getOrDefault("category", ""));
+
             data.add(row);
         }
         client.insert(InsertReq.builder().collectionName(collectionName).data(data).build());
@@ -101,12 +121,32 @@ public class MilvusVectorStoreService implements VectorStoreService {
 
     @Override
     public List<SearchResult> search(String collectionName, List<Float> queryVector, int topK, float scoreThreshold) {
-        SearchResp resp = client.search(SearchReq.builder()
+        return search(collectionName, queryVector, topK, scoreThreshold, null);
+    }
+
+    @Override
+    public List<SearchResult> search(String collectionName, List<Float> queryVector, int topK, float scoreThreshold, Map<String, String> filters) {
+        List<String> outputFields = new ArrayList<>(BASE_OUTPUT_FIELDS);
+        outputFields.addAll(EXTENDED_OUTPUT_FIELDS);
+
+        SearchReq.SearchReqBuilder<?, ?> builder = SearchReq.builder()
                 .collectionName(collectionName)
                 .data(List.of(new FloatVec(queryVector)))
                 .topK(topK)
-                .outputFields(List.of("document_id", "chunk_index", "chunk_text", "source_title", "source_url"))
-                .build());
+                .outputFields(outputFields);
+
+        // 如果有过滤条件，添加 filter expression
+        if (filters != null && !filters.isEmpty()) {
+            String expr = filters.entrySet().stream()
+                    .filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+                    .map(e -> String.format("%s == \"%s\"", e.getKey(), e.getValue()))
+                    .collect(Collectors.joining(" and "));
+            if (!expr.isEmpty()) {
+                builder.filter(expr);
+            }
+        }
+
+        SearchResp resp = client.search(builder.build());
 
         List<SearchResult> results = new ArrayList<>();
         List<List<SearchResp.SearchResult>> searchResults = resp.getSearchResults();

@@ -1,6 +1,7 @@
 package com.szu.rag.knowledge.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.szu.rag.framework.context.UserContext;
 import com.szu.rag.framework.exception.ClientException;
 import com.szu.rag.framework.id.SnowflakeIdWorker;
 import com.szu.rag.ingestion.pipeline.IngestionContext;
@@ -58,7 +59,7 @@ public class KnowledgeService {
         kb.setDocumentCount(0);
         kb.setChunkCount(0);
         kb.setStatus("ACTIVE");
-        kb.setUserId(1L);
+        kb.setUserId(UserContext.getUserId());
         kbMapper.insert(kb);
 
         vectorStoreService.createCollection(kb.getCollectionName(), kb.getEmbeddingDim());
@@ -100,7 +101,7 @@ public class KnowledgeService {
                 failedDoc.setFileSize(file.getSize());
                 failedDoc.setDocumentStatus("FAILED");
                 failedDoc.setErrorMessage("文件保存失败: " + e.getMessage());
-                failedDoc.setUserId(1L);
+                failedDoc.setUserId(UserContext.getUserId());
                 docMapper.insert(failedDoc);
                 docs.add(failedDoc);
             }
@@ -151,6 +152,9 @@ public class KnowledgeService {
 
         // 3. Delete document record
         docMapper.deleteById(docId);
+
+        // 4. Update KB stats
+        refreshKbStats(doc.getKnowledgeBaseId());
         log.info("Document deleted: {}", docId);
     }
 
@@ -224,10 +228,10 @@ public class KnowledgeService {
             doc.setFileSize(file.getSize());
             doc.setMimeType(detectMimeType(originalName, file.getContentType()));
             doc.setSourceUrl(sourceUrl != null ? sourceUrl : "");
-            doc.setSourceType(sourceUrl != null && !sourceUrl.isEmpty() ? "CRAWLER" : "MANUAL");
+            doc.setSourceType("MANUAL");
             doc.setDocumentStatus("UPLOADED");
             doc.setProcessMode("PIPELINE");
-            doc.setUserId(1L);
+            doc.setUserId(UserContext.getUserId());
             docMapper.insert(doc);
             log.info("Document record inserted: id={}", doc.getId());
 
@@ -263,5 +267,31 @@ public class KnowledgeService {
         if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         if (lower.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
         return "application/octet-stream";
+    }
+
+    private void refreshKbStats(Long kbId) {
+        try {
+            KnowledgeBase kb = kbMapper.selectById(kbId);
+            if (kb == null) return;
+
+            Long docCount = docMapper.selectCount(
+                    new LambdaQueryWrapper<KnowledgeDocument>()
+                            .eq(KnowledgeDocument::getKnowledgeBaseId, kbId)
+                            .eq(KnowledgeDocument::getDocumentStatus, "COMPLETED"));
+            kb.setDocumentCount(docCount.intValue());
+
+            var completedDocs = docMapper.selectList(
+                    new LambdaQueryWrapper<KnowledgeDocument>()
+                            .eq(KnowledgeDocument::getKnowledgeBaseId, kbId)
+                            .eq(KnowledgeDocument::getDocumentStatus, "COMPLETED"));
+            int totalChunks = completedDocs.stream()
+                    .mapToInt(d -> d.getChunkCount() != null ? d.getChunkCount() : 0)
+                    .sum();
+            kb.setChunkCount(totalChunks);
+
+            kbMapper.updateById(kb);
+        } catch (Exception e) {
+            log.error("Failed to refresh KB stats for kbId: {}", kbId, e);
+        }
     }
 }

@@ -7,7 +7,7 @@ spring:
       max-file-size: 100MB
       max-request-size: 200MB
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:szu_rag_2024}
   data:
@@ -28,6 +28,22 @@ ai:
     bailian:
       api-key: sk-98cdd33ac81348cf8d302b6094c60dbb
 
+rag:
+  retrieval:
+    top-k: 5
+    candidate-count: 10
+    score-threshold: 0.3
+  memory:
+    max-turns: 10
+  multi-query:
+    enabled: true
+    count: 3
+  hybrid-retrieval:
+    enabled: false
+  reranker:
+    enabled: true
+    top-n: 5
+
 logging:
   level:
     com.szu.rag: info
@@ -35,3 +51,13 @@ logging:
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 86400
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-read-cookie: false
+  is-read-header: true

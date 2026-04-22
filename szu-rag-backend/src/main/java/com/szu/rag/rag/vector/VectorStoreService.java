@@ -20,6 +20,9 @@ public interface VectorStoreService {
     /** 相似搜索 */
     List<SearchResult> search(String collectionName, List<Float> queryVector, int topK, float scoreThreshold);
 
+    /** 带过滤条件的相似搜索 */
+    List<SearchResult> search(String collectionName, List<Float> queryVector, int topK, float scoreThreshold, Map<String, String> filters);
+
     /** 搜索结果 */
     record SearchResult(Long id, float score, Map<String, Object> metadata) {}
 }

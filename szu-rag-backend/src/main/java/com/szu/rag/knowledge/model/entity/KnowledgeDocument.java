@@ -21,6 +21,12 @@ public class KnowledgeDocument {
     private String processMode;
     private String errorMessage;
     private Integer chunkCount;
+    private String sourceDepartment;
+    private String documentType;
+    private String category;
+    private String academicYear;
+    private String semester;
+    private String targetAudience;
     private Long userId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

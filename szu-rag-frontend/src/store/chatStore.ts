@@ -13,6 +13,7 @@ interface ChatState {
   currentConvId: string | null;
   messages: DisplayMessage[];
   isLoading: boolean;
+  userRole: 'student' | 'teacher' | 'visitor';
   setConversations: (convs: Conversation[]) => void;
   setCurrentConv: (id: string | null) => void;
   addMessage: (msg: any) => void;
@@ -21,6 +22,7 @@ interface ChatState {
   finalizeLastMessage: () => void;
   clearMessages: () => void;
   setLoading: (loading: boolean) => void;
+  setUserRole: (role: 'student' | 'teacher' | 'visitor') => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -28,6 +30,7 @@ export const useChatStore = create<ChatState>((set) => ({
   currentConvId: null,
   messages: [],
   isLoading: false,
+  userRole: 'student',
   setConversations: (convs) => set({ conversations: convs }),
   setCurrentConv: (id) => set({ currentConvId: id, messages: [] }),
   addMessage: (msg) => set((state) => ({ messages: [...state.messages, msg] })),
@@ -53,4 +56,5 @@ export const useChatStore = create<ChatState>((set) => ({
   }),
   clearMessages: () => set({ messages: [] }),
   setLoading: (loading) => set({ isLoading: loading }),
+  setUserRole: (role) => set({ userRole: role }),
 }));

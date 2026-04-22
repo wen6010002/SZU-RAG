@@ -14,7 +14,7 @@ spring:
       max-request-size: 200MB
       enabled: true
   datasource:
-    url: jdbc:mysql://localhost:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/szu_rag?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
     username: root
     password: szu_rag_2024
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -58,19 +58,37 @@ ai:
 rag:
   retrieval:
     top-k: 5
-    score-threshold: 0.5
+    candidate-count: 10
+    score-threshold: 0.3
   memory:
     max-turns: 10
   rate-limit:
     max-requests-per-minute: 20
+  multi-query:
+    enabled: true
+    count: 3
+  hybrid-retrieval:
+    enabled: false
+  reranker:
+    enabled: true
+    top-n: 5
+  query-rewrite:
+    enabled: true
+  conversation-summary:
+    enabled: true
+    max-turns: 10
+    summary-max-chars: 300
 
 # Sa-Token
 sa-token:
   token-name: Authorization
+  token-prefix: Bearer
   timeout: 86400
   is-concurrent: true
   is-share: true
   token-style: uuid
+  is-read-cookie: false
+  is-read-header: true
 
 # Snowflake
 snowflake:

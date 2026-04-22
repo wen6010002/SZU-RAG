@@ -5,7 +5,7 @@ import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 
 export default function ChatWindow({ convId }: { convId: string }) {
-  const { messages, isLoading, addMessage, appendToLastMessage, setLastMessageSources, finalizeLastMessage, setLoading, clearMessages } = useChatStore();
+  const { messages, isLoading, userRole, addMessage, appendToLastMessage, setLastMessageSources, finalizeLastMessage, setLoading, clearMessages } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, setSources] = useState<any[]>([]);
 
@@ -38,7 +38,7 @@ export default function ChatWindow({ convId }: { convId: string }) {
     setLoading(true);
     setSources([]);
 
-    await api.sendMessageStream(convId, question, {
+    await api.sendMessageStream(convId, question, userRole, {
       onThinking: () => {},
       onContent: (content) => appendToLastMessage(content),
       onSources: (srcs) => { setSources(srcs); setLastMessageSources(srcs); },
@@ -48,13 +48,25 @@ export default function ChatWindow({ convId }: { convId: string }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, i) => (
-          <MessageBubble key={i} role={msg.role} content={msg.content} sources={msg.sources} isStreaming={msg.isStreaming} />
-        ))}
-        <div ref={messagesEndRef} />
+    <div className="flex-1 flex flex-col h-full min-h-0">
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+          {messages.map((msg, i) => (
+            <div key={i} className="animate-fade-in-up">
+              <MessageBubble
+                role={msg.role}
+                content={msg.content}
+                sources={msg.sources}
+                isStreaming={msg.isStreaming}
+              />
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
+
+      {/* Input area */}
       <ChatInput onSend={handleSend} disabled={isLoading} />
     </div>
   );

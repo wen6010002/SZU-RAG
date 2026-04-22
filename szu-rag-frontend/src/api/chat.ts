@@ -1,32 +1,55 @@
 const BASE = '/api/v1';
 
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export interface Conversation { id: string; title: string; status: string; messageCount: number; createdAt: string; }
 export interface Message { id: string; conversationId: string; role: string; content: string; sources?: Source[] | string; isStreaming?: boolean; createdAt: string; }
-export interface Source { title: string; url: string; relevance: string; snippet: string; }
+export interface Source {
+  title: string;
+  url: string;
+  relevance: string;
+  snippet: string;
+  department?: string;
+  documentType?: string;
+  publishDate?: string;
+  category?: string;
+}
+export interface CalendarContext {
+  date: string;
+  academicYear: string;
+  semester: string;
+  startDate: string;
+  endDate: string;
+  currentWeek: number;
+  upcomingEvents: { eventName: string; eventType: string; eventStart: string; eventEnd: string | null }[];
+}
 
 export async function createConversation(): Promise<Conversation> {
-  const res = await fetch(`${BASE}/chat/conversations`, { method: 'POST' });
+  const res = await fetch(`${BASE}/chat/conversations`, { method: 'POST', headers: { ...authHeaders() } });
   const json = await res.json();
   return json.data;
 }
 
 export async function listConversations(): Promise<Conversation[]> {
-  const res = await fetch(`${BASE}/chat/conversations`);
+  const res = await fetch(`${BASE}/chat/conversations`, { headers: { ...authHeaders() } });
   const json = await res.json();
   return json.data || [];
 }
 
 export async function getMessages(convId: string): Promise<Message[]> {
-  const res = await fetch(`${BASE}/chat/conversations/${convId}/messages`);
+  const res = await fetch(`${BASE}/chat/conversations/${convId}/messages`, { headers: { ...authHeaders() } });
   const json = await res.json();
   return json.data || [];
 }
 
 export async function deleteConversation(convId: string) {
-  await fetch(`${BASE}/chat/conversations/${convId}`, { method: 'DELETE' });
+  await fetch(`${BASE}/chat/conversations/${convId}`, { method: 'DELETE', headers: { ...authHeaders() } });
 }
 
-export async function sendMessageStream(convId: string, question: string, callbacks: {
+export async function sendMessageStream(convId: string, question: string, role: string, callbacks: {
   onThinking?: (content: string) => void;
   onContent?: (content: string) => void;
   onSources?: (sources: Source[]) => void;
@@ -35,8 +58,8 @@ export async function sendMessageStream(convId: string, question: string, callba
 }) {
   const res = await fetch(`${BASE}/chat/conversations/${convId}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ question, role }),
   });
 
   const reader = res.body?.getReader();
@@ -68,5 +91,15 @@ export async function sendMessageStream(convId: string, question: string, callba
         } catch {}
       }
     }
+  }
+}
+
+export async function getCalendarContext(): Promise<CalendarContext> {
+  try {
+    const res = await fetch(`${BASE}/calendar/context`, { headers: { ...authHeaders() } });
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return { date: '', academicYear: '', semester: '', startDate: '', endDate: '', currentWeek: 0, upcomingEvents: [] };
   }
 }

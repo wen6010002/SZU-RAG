@@ -1,5 +1,6 @@
 package com.szu.rag.knowledge.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.szu.rag.framework.result.Result;
 import com.szu.rag.knowledge.model.entity.KnowledgeBase;
 import com.szu.rag.knowledge.model.entity.KnowledgeDocument;
@@ -21,6 +22,7 @@ public class KnowledgeController {
 
     @PostMapping("/bases")
     public Result<KnowledgeBase> createBase(@RequestBody CreateBaseRequest req) {
+        StpUtil.checkRole("ADMIN");
         return Result.success(knowledgeService.createKnowledgeBase(req.getName(), req.getDescription()));
     }
 
@@ -42,6 +44,7 @@ public class KnowledgeController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("knowledgeBaseId") Long kbId,
             @RequestParam(value = "sourceUrl", required = false) String sourceUrl) {
+        StpUtil.checkRole("ADMIN");
         return Result.success(knowledgeService.uploadDocument(kbId, file, sourceUrl));
     }
 
@@ -49,6 +52,7 @@ public class KnowledgeController {
     public Result<List<KnowledgeDocument>> uploadDocumentsBatch(
             @RequestParam("files") MultipartFile[] files,
             @RequestParam("knowledgeBaseId") Long kbId) {
+        StpUtil.checkRole("ADMIN");
         return Result.success(knowledgeService.uploadDocumentsBatch(kbId, files));
     }
 
@@ -66,12 +70,14 @@ public class KnowledgeController {
 
     @DeleteMapping("/documents/{docId}")
     public Result<Void> deleteDocument(@PathVariable Long docId) {
+        StpUtil.checkRole("ADMIN");
         knowledgeService.deleteDocument(docId);
         return Result.success();
     }
 
     @PostMapping("/documents/{docId}/reprocess")
     public Result<KnowledgeDocument> reprocessDocument(@PathVariable Long docId) {
+        StpUtil.checkRole("ADMIN");
         return Result.success(knowledgeService.reprocessDocument(docId));
     }
 

@@ -54,7 +54,7 @@ public class JdbcConversationMemory implements ConversationMemory {
         if (pairs.isEmpty()) return "";
         StringBuilder sb = new StringBuilder();
         for (MessagePair pair : pairs) {
-            sb.append("学生：").append(pair.userMessage()).append("\n");
+            sb.append("用户：").append(pair.userMessage()).append("\n");
             sb.append("助手：").append(pair.assistantMessage()).append("\n");
         }
         return sb.toString();

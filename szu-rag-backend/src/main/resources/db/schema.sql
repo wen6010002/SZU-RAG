@@ -106,6 +106,46 @@ CREATE TABLE IF NOT EXISTS t_message (
     INDEX idx_conversation (conversation_id)
 ) COMMENT '消息表';
 
--- 初始管理员（密码: admin123，BCrypt加密）
+-- 7. 校园日历表
+
+-- 文档元数据扩展列
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS source_department VARCHAR(128) DEFAULT '' COMMENT '来源部门';
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS document_type VARCHAR(32) DEFAULT '' COMMENT '文档类型: notice/policy/procedure/schedule';
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS category VARCHAR(64) DEFAULT '' COMMENT '分类: enrollment/exam/teaching...';
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS academic_year VARCHAR(20) DEFAULT '' COMMENT '学年';
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS semester VARCHAR(20) DEFAULT '' COMMENT '学期';
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS target_audience VARCHAR(32) DEFAULT '' COMMENT '目标受众: undergraduate/postgraduate/staff/all';
+ALTER TABLE t_knowledge_document ADD COLUMN IF NOT EXISTS source_site VARCHAR(32) DEFAULT '' COMMENT '来源站点: jwb/www/hqb/xsb/gwt';
+
+-- 分块元数据扩展列
+ALTER TABLE t_document_chunk ADD COLUMN IF NOT EXISTS source_department VARCHAR(128) DEFAULT '' COMMENT '来源部门';
+ALTER TABLE t_document_chunk ADD COLUMN IF NOT EXISTS document_type VARCHAR(32) DEFAULT '' COMMENT '文档类型';
+ALTER TABLE t_document_chunk ADD COLUMN IF NOT EXISTS category VARCHAR(64) DEFAULT '' COMMENT '分类';
+ALTER TABLE t_document_chunk ADD COLUMN IF NOT EXISTS source_site VARCHAR(32) DEFAULT '' COMMENT '来源站点';
+
+-- 全文检索索引（用于混合检索）
+ALTER TABLE t_document_chunk ADD FULLTEXT INDEX IF NOT EXISTS ft_chunk_text (chunk_text) WITH PARSER ngram;
+
+-- 7. 校园日历表
+CREATE TABLE IF NOT EXISTS t_campus_calendar (
+    id              BIGINT PRIMARY KEY COMMENT '雪花ID',
+    academic_year   VARCHAR(20)   NOT NULL COMMENT '学年，如 2025-2026',
+    semester        VARCHAR(20)   NOT NULL COMMENT '学期：第一学期/第二学期/暑期',
+    start_date      DATE          NOT NULL COMMENT '学期开始日期',
+    end_date        DATE          NOT NULL COMMENT '学期结束日期',
+    week_count      INT           NOT NULL COMMENT '总教学周数',
+    event_name      VARCHAR(100)  NOT NULL COMMENT '事件名称',
+    event_type      VARCHAR(50)   NOT NULL COMMENT '事件类型：teaching/exam/enrollment/holiday/registration',
+    event_start     DATE          NOT NULL COMMENT '事件开始日期',
+    event_end       DATE          NULL     COMMENT '事件结束日期',
+    description     VARCHAR(500)  NULL     COMMENT '补充说明',
+    created_at      DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_event_type (event_type),
+    INDEX idx_event_dates (event_start, event_end)
+) COMMENT '校园日历表';
+
+-- 初始管理员（密码: admin123，BCrypt加密 - Hutool BCrypt 兼容）
 INSERT INTO t_user (id, username, password, nickname, role)
-VALUES (1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '管理员', 'ADMIN');
+VALUES (1, 'admin', '$2a$10$aX4KEdZp2w7Qz4XeB0tZ2.ieAM28ME0LJnors/UD6504TuLJ0aouC', '管理员', 'ADMIN')
+ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname);
